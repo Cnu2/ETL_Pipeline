@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 from cryptography.fernet import Fernet # 대칭암호화
@@ -8,7 +9,6 @@ import time
 import gzip
 import boto3
 from apscheduler.schedulers.blocking import BlockingScheduler
-
 
 # url을 받아 json 형태로 변환하는 함수
 def request_data(url):
@@ -52,40 +52,44 @@ def convert_method_to_int(method):
     else:
         return 0
 
-# 타임스탬프를 datetime으로 변환하는 함수
-def timestamp_to_datetime(timestamp):
+# # 타임스탬프를 datetime으로 변환하는 함수
+# def timestamp_to_datetime(timestamp):
     
-    return datetime.fromtimestamp(timestamp)
+#     return datetime.fromtimestamp(timestamp)
 
-# datetime을 타임스탬프로 변환하는 함수
-def datetime_to_timestamp(datetime):
+# # datetime을 타임스탬프로 변환하는 함수
+# def datetime_to_timestamp(datetime):
 
-    return time.mktime(datetime.timetuple())
+#     return time.mktime(datetime.timetuple())
 
-# 문자열을 datetime으로 변환하는 함수
-def string_to_datetime(string):
+# # 문자열을 datetime으로 변환하는 함수
+# def string_to_datetime(string):
 
-    return datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%fZ')
+#     return datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%fZ')
 
 # 문자열을 타임스탬프로 변환하는 함수
 def string_to_timestamp(string):
+    # 문자열을 datetime으로 변환
+    _datetime = datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%fZ')
+    # datetime을 타임스탬프로 변환
+    _timestamp = time.mktime(_datetime.timetuple())
+    return _timestamp
 
-    return datetime_to_timestamp(string_to_datetime(string))
+# # 데이터를 파일로 저장하는 함수
+# def dump_data(data):
 
-# 데이터를 파일로 저장하는 함수
-def dump_data(data):
+#     return json.dumps(data)
 
-    return json.dumps(data)
+# # 데이터를 압축하는 함수
+# def compress_data(str_data):
 
-# 데이터를 압축하는 함수
-def compress_data(str_data):
+#     return gzip.compress(str_data.encode())
 
-    return gzip.compress(str_data.encode())
+# #  dict 데이터를 압축하는 함수
+# def compress_dict(dict_data):
 
-#  dict 데이터를 압축하는 함수
-def compress_dict(dict_data):
-
-    return compress_data(dump_data(dict_data))
+#     return compress_data(dump_data(dict_data))
+#     return gzip.compress(dump_data(dict_data).encode())
 
 # 하나의 데이터를 받아서 변환을 수행하고 결과를 반환한다.
 def convert_single_data(data):
@@ -124,6 +128,9 @@ def send_to_aws_s3_path(data, file_path):
     # AWS S3에 파일 저장
     s3.Object(aws_s3_bucket_name, file_path).put(Body=data)
 
+
+# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
 # 스케줄링
 def schedule_job():
     print(f"start schedule job: {datetime.now()}")
@@ -139,7 +146,7 @@ def schedule_job():
         _json = convert_single_data(d)
         # breakpoint()
         # 타임스탬프를 datetime으로 변환
-        _datetime = timestamp_to_datetime(d['ArrivalTimeStamp'])
+        _datetime = datetime.fromtimestamp(d['ArrivalTimeStamp'])
         # 연, 월, 일, 시를 출력, 데이터 저장시 사용
         times = [_datetime.year, _datetime.month, _datetime.day, _datetime.hour, _datetime.minute, _datetime.second, _datetime.microsecond // 1000]
         # 키로 사용
@@ -150,16 +157,24 @@ def schedule_job():
         else:
             _data[path] = [_json]
 
-        for i in _data:
-            # 데이터 압축
-            _compress = compress_dict(_data[i])
-            
-            filepath = i + 'log.txt'
+    # print(_data)
+    for i in _data:
+        # i : 파일 패스
+        # _data[i] : 파일 패스에 해당하는 데이터 리스트
+        # 데이터를 압축한다.
+        json_data = json.dumps(_data[i]) 
+        _compress = gzip.compress(json.dumps(_data[i]).encode())
+        # breakpoint()
+        # Compression ratio: 83.06%
+        filepath = i+'log.txt'
+        accessParams = get_private_data()
+        send_to_aws_s3_path(_compress, filepath, accessParams)
 
-            (_compress, filepath)
-        
     print('finish schedule job')
 
+# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+# main
 
 if __name__ == "__main__":
     scheduler = BlockingScheduler()
@@ -169,3 +184,4 @@ if __name__ == "__main__":
     scheduler.start()
 
 # schedule_job() 
+
