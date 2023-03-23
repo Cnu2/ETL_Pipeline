@@ -21,15 +21,15 @@ def request_data(url):
     else:
         print('Error:', response.status_code)
 
-# data 복호화
-def decrypt_data(key, data): 
-    _fernet = Fernet(key) # Fernet 계체 생성
-    return _fernet.decrypt(data)
+# # data 복호화
+# def decrypt_data(key, data): 
+#     _fernet = Fernet(key) # Fernet 계체 생성
+#     return _fernet.decrypt(data)
 
-# 문자열을 json으로 변환하는 함수
-def str_to_json(str):
+# # 문자열을 json으로 변환하는 함수
+# def str_to_json(str):
 
-    return json.loads(str.replace("'", '"'))
+#     return json.loads(str.replace("'", '"'))
 
 # b64uuid를 uuid로 변환하는 함수
 def encode_b64uuid_64(original_uuid):
@@ -95,11 +95,12 @@ def string_to_timestamp(string):
 def convert_single_data(data):
     # 1. 복호화 수행
     key = b't-jdqnDewRx9kWithdsTMS21eLrri70TpkMq2A59jX8='
-    decrypt_str = decrypt_data(key, data['data']).decode('utf-8')
-
+    # Fernet 계체 생성
+    _fernet = Fernet(key) 
+    # data 복호화
+    decrypt_str = _fernet.decrypt(data['data']).decode('utf-8')
     # 2. 복호화된 데이터를 json(dict)으로 변환한다.
-    _json = str_to_json(decrypt_str)
-
+    _json = json.loads(decrypt_str.replace("'", '"'))
     # 3. uuid64 -> 문자열 길이 축소
     _json['user_id'] = encode_b64uuid_64(_json['user_id'])
 
