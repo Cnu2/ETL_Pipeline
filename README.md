@@ -1,7 +1,7 @@
 # ETL_Pipeline
 
 ## Architecture
-![ETL Pipeline Structure](./ETL_Pipeline.drawio.png)
+![ETL Pipeline Structure](./ETL.png)
 
 ## Issue
 1. AWS S3에 적재할때 너무 많은 데이터 비용이 드는 문제 발생 
